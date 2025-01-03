@@ -1,101 +1,134 @@
-import Image from "next/image";
+/* eslint-disable react-hooks/exhaustive-deps */
+"use client";
+import React, { useState, useRef, useEffect } from "react";
+import { MediaConnection } from "peerjs";
+import { usePeer, useMediaStream } from "@/hooks";
+import { VideoPlayer } from "@/components";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const { myPeer } = usePeer();
+  const { myStream, videoRefLocal } = useMediaStream();
+  const [remoteUserId, setRemoteUserId] = useState("");
+  const videoRefRemote = useRef<HTMLVideoElement | null>(null);
+  const [activeCall, setActiveCall] = useState<MediaConnection | null>();
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+  function setRemoteStream(remoteStream: MediaStream | null) {
+    if (videoRefRemote.current && remoteStream) {
+      videoRefRemote.current.srcObject = remoteStream;
+    }
+  }
+
+  // Function to start the video call
+  const startCall = () => {
+    if (!remoteUserId) {
+      alert("Please enter a remote user ID");
+      return;
+    }
+    if (myPeer && myStream) {
+      console.log("Calling remote user" + remoteUserId);
+      const callMade = myPeer.call(remoteUserId, myStream);
+      callMade.on("stream", (remoteStream) => {
+        setRemoteStream(remoteStream);
+      });
+      callMade.on("close", () => {
+        console.log("Call closed");
+        callMade.close();
+        setActiveCall(null);
+        setRemoteStream(null);
+      });
+      setActiveCall(callMade);
+    }
+  };
+
+  useEffect(() => {
+    if (myPeer) {
+      myPeer.on("call", (callRecieved) => {
+        console.log("Someone is calling me");
+        console.log(callRecieved);
+        try {
+          callRecieved.answer(myStream!);
+          callRecieved.on("stream", (remoteStream) => {
+            setRemoteStream(remoteStream);
+          });
+          setActiveCall(callRecieved);
+
+          // Handle call closing event
+          callRecieved.on("close", () => {
+            console.log("Call closed");
+            callRecieved.close();
+            setActiveCall(null);
+            setRemoteStream(null);
+          });
+        } catch (err) {
+          console.error("Failed to get local stream", err);
+        }
+      });
+    }
+  }, [myPeer]);
+
+  useEffect(() => {
+    if (videoRefLocal.current && myStream) {
+      videoRefLocal.current.srcObject = myStream;
+    }
+  }, [videoRefLocal, myStream]);
+
+  const endCall = () => {
+    console.log("Ending call");
+    if (activeCall) {
+      activeCall.close();
+      activeCall.peerConnection?.close();
+      activeCall.remoteStream?.getTracks().forEach((track) => track.stop());
+      setActiveCall(null);
+      setRemoteStream(null);
+    }
+  };
+
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      endCall(); // Call the endCall function when the user closes the browser/tab
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, []);
+
+  return (
+    <div className="p-10 h-screen">
+      <h1>WebRTC 1-to-1 Video Call</h1>
+      <div>
+        <label>Remote User ID:</label>
+        <input
+          type="text"
+          value={remoteUserId}
+          className="border-2 border-blue-300 rounded-lg p-2 w-1/2 font-bold text-blue-900"
+          onChange={(e) => setRemoteUserId(e.target.value)}
+        />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 items-center gap-4 mt-10">
+        <VideoPlayer
+          peerId={myPeer ? myPeer.id : "..."}
+          ref={videoRefLocal}
+          muted
+        />
+        <VideoPlayer peerId={activeCall?.peer ?? ""} ref={videoRefRemote} />
+      </div>
+      <div className="flex gap-2 mt-2">
+        <button
+          className="bg-blue-300 rounded-lg p-2 font-bold text-blue-900"
+          onClick={startCall}
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+          Start Video Call
+        </button>
+        <button
+          className="bg-red-300 rounded-lg p-2 font-bold text-red-900"
+          onClick={endCall}
         >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          End Video Call
+        </button>
+      </div>
     </div>
   );
 }
