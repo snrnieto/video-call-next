@@ -1,7 +1,7 @@
 import Peer from "peerjs";
 import { useState, useRef, useEffect } from "react";
 
-const usePeer = () => {
+export const usePeer = () => {
   const [myPeer, setMyPeer] = useState<Peer>();
   const [myId, setMyId] = useState("");
   const isPeerSet = useRef(false);
@@ -24,5 +24,3 @@ const usePeer = () => {
     myId,
   };
 };
-
-export default usePeer;

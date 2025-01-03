@@ -1,2 +1,3 @@
-export { default as useMediaStream } from "./useMediaStream";
-export { default as usePeer } from "./usePeer";
+export * from "./useIsVisible";
+export * from "./useMediaStream";
+export * from "./usePeer";

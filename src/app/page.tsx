@@ -43,10 +43,15 @@ export default function Home() {
   useEffect(() => {
     if (myPeer) {
       myPeer.on("call", (callRecieved) => {
-        console.log("Someone is calling me");
-        console.log(callRecieved);
+        console.log(
+          "Someone is calling me to my peer ID:",
+          myPeer.id,
+          "fromPeer:",
+          callRecieved.peer
+        );
         try {
           callRecieved.answer(myStream!);
+          console.log("Answering call");
           callRecieved.on("stream", (remoteStream) => {
             setRemoteStream(remoteStream);
           });

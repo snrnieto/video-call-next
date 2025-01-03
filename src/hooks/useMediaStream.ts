@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 
-const useMediaStream = () => {
+export const useMediaStream = () => {
   const videoRefLocal = useRef<HTMLVideoElement | null>(null);
   const [myStream, setMyStream] = useState<MediaStream | null>(null);
   const isStreamSet = useRef(false);
@@ -29,5 +29,3 @@ const useMediaStream = () => {
     videoRefLocal,
   };
 };
-
-export default useMediaStream;
