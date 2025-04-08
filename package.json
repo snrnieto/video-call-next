@@ -6,7 +6,13 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:migrate": "prisma migrate dev",
+    "db:generate": "prisma generate",
+    "db:studio": "prisma studio",
+    "db:prod:migrate": "prisma migrate deploy",
+    "db:prod:generate": "prisma generate",
+    "db:prod:push": "prisma db push"
   },
   "dependencies": {
     "@prisma/client": "^6.6.0",
