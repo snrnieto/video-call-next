@@ -17,6 +17,7 @@ export default function Home() {
   const [currentRoom, setCurrentRoom] = useState<Room | null>(null);
   const roomClient = new RoomClient();
   const router = useRouter();
+  const [isManualEnd, setIsManualEnd] = useState(false);
   console.log({
     currentRoom,
     myPeerId: myPeer?.id,
@@ -75,12 +76,16 @@ export default function Home() {
 
     call.on("close", () => {
       console.log("Call closed by remote user");
-      handleCallEnd(true); // Pass true to indicate automatic reconnect
+      if (!isManualEnd) {
+        handleCallEnd(true); // Only auto-reconnect if not manually ended
+      }
     });
 
     call.on("error", (error) => {
       console.error("Call error:", error);
-      handleCallEnd(true); // Pass true to indicate automatic reconnect
+      if (!isManualEnd) {
+        handleCallEnd(true); // Only auto-reconnect if not manually ended
+      }
     });
 
     // Monitor connection state
@@ -89,7 +94,9 @@ export default function Home() {
           call.peerConnection.connectionState === 'failed' ||
           call.peerConnection.connectionState === 'closed') {
         console.log("Connection state changed to:", call.peerConnection.connectionState);
-        handleCallEnd(true); // Pass true to indicate automatic reconnect
+        if (!isManualEnd) {
+          handleCallEnd(true); // Only auto-reconnect if not manually ended
+        }
       }
     };
 
@@ -117,6 +124,7 @@ export default function Home() {
     setRemoteStream(null);
     setCurrentRoom(null);
     setIsSearching(false);
+    setIsManualEnd(false); // Reset the manual end flag
 
     // If autoReconnect is true, start searching for a new call
     if (autoReconnect) {
@@ -153,12 +161,14 @@ export default function Home() {
 
   const endCall = () => {
     console.log("Call ended by local user");
+    setIsManualEnd(true); // Set flag before ending call
     handleCallEnd(false); // Pass false to prevent automatic reconnect
     router.refresh();
   };
 
   const nextCall = () => {
     console.log("Moving to next call");
+    setIsManualEnd(true); // Set flag before ending call
     handleCallEnd(true); // Pass true to automatically start a new call
   };
 
