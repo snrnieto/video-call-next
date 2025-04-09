@@ -6,6 +6,7 @@ import { usePeer, useMediaStream } from "@/hooks";
 import { VideoPlayer } from "@/components";
 import { RoomClient } from "@/services/room.client";
 import { Room, RoomStatus } from "@/models/room";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
   const { myPeer } = usePeer();
@@ -15,6 +16,7 @@ export default function Home() {
   const [isSearching, setIsSearching] = useState(false);
   const [currentRoom, setCurrentRoom] = useState<Room | null>(null);
   const roomClient = new RoomClient();
+  const router = useRouter();
   console.log({
     currentRoom,
     myPeerId: myPeer?.id,
@@ -151,6 +153,12 @@ export default function Home() {
   const endCall = () => {
     console.log("Call ended by local user");
     handleCallEnd(false); // Pass false to prevent automatic reconnect
+    router.refresh();
+  };
+
+  const nextCall = () => {
+    console.log("Moving to next call");
+    handleCallEnd(true); // Pass true to automatically start a new call
   };
 
   useEffect(() => {
@@ -181,19 +189,30 @@ export default function Home() {
         />
       </div>
       <div className="flex gap-2 mt-2">
-        <button
-          className="bg-blue-300 rounded-lg p-2 font-bold text-blue-900"
-          onClick={startCall}
-          disabled={isSearching}
-        >
-          {isSearching ? "Searching for a call..." : "Start Video Call"}
-        </button>
-        <button
-          className="bg-red-300 rounded-lg p-2 font-bold text-red-900"
-          onClick={endCall}
-        >
-          End Video Call
-        </button>
+        
+        {activeCall ?(
+          <>
+            <button
+              className="bg-green-300 rounded-lg p-2 font-bold text-green-900"
+              onClick={nextCall}
+              disabled={isSearching}
+            >
+              Next Call
+            </button>
+            <button
+              className="bg-red-300 rounded-lg p-2 font-bold text-red-900"
+              onClick={endCall}
+            >
+              End Video Call
+            </button>
+          </>
+        ):<button
+        className="bg-blue-300 rounded-lg p-2 font-bold text-blue-900"
+        onClick={startCall}
+        disabled={isSearching}
+      >
+        {isSearching ? "Searching for a call..." : "Start Video Call"}
+      </button>}
       </div>
       {isSearching && !activeCall && (
         <div className="mt-4 text-center">
